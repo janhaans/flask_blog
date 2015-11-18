@@ -44,7 +44,26 @@ def logout():
 @app.route('/main')
 @login_required
 def main():
-    return render_template('main.html')
+    with connect_db() as connection:
+        cursor = connection.cursor()
+        cursor.execute('''SELECT * FROM posts''')
+        posts = [ {'title':row[0], 'post':row[1]} for row in cursor.fetchall() ]
+    return render_template('main.html', posts=posts)
+
+@app.route('/add', methods=['POST'])
+@login_required
+def add():
+    title = request.form['title']
+    post = request.form['post']
+    if not title or not post:
+        flash("All fields are required, please try again")
+        return redirect(url_for('main'))
+    else:
+        with connect_db() as connection:
+            cursor = connection.cursor()
+            cursor.execute('''INSERT INTO posts VALUES (?,?)''', [title, post])
+        flash("New entry was succesfully posted")
+        return redirect(url_for('main'))
 
 if __name__ == '__main__':
     app.run(debug=True)
